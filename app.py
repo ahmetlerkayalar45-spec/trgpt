@@ -25,7 +25,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per minute")
 def chat():
     data = request.json
     user_message = data.get('message')
