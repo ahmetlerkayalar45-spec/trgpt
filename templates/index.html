@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRGPT - Yapay Zeka Asistanı</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #212121; 
+            color: #ececec; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        header {
+            background-color: #171717;
+            padding: 15px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            letter-spacing: 1px;
+        }
+        #chat-container { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            max-width: 80%;
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 15px;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #2b5278;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .bot-message {
+            background-color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .loading {
+            font-style: italic;
+            color: #aaa;
+        }
+        #input-area {
+            background-color: #171717;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+        #message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background-color: #2a2a2a;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+        #message-input:focus { border-color: #1976d2; }
+        button {
+            padding: 0 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #1976d2;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #1565c0; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        
+        /* Scrollbar tasarımı */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #212121; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+    <header>TRGPT</header>
+    <div id="chat-container">
+        <div class="message bot-message">Merhaba! Ben TRGPT. Sana nasıl yardımcı olabilirim?</div>
+    </div>
+    <div id="input-area">
+        <input id="message-input" type="text" placeholder="Bir mesaj yazın..." autocomplete="off">
+        <button id="send-btn" onclick="sendMessage()">Gönder</button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            // Kullanıcı mesajını ekle
+            appendMessage(text, 'user-message');
+            messageInput.value = '';
+            sendBtn.disabled = true;
+
+            // Yükleniyor animasyonu
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message loading';
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerText = 'TRGPT yazıyor...';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await res.json();
+                
+                // Yükleniyor animasyonunu sil
+                loadingDiv.remove();
+                
+                if (data.reply) {
+                    appendMessage(data.reply, 'bot-message');
+                } else {
+                    appendMessage("Hata: " + data.error, 'bot-message');
+                }
+            } catch (e) {
+                loadingDiv.remove();
+                appendMessage("Bağlantı hatası oluştu.", 'bot-message');
+            }
+
+            sendBtn.disabled = false;
+            messageInput.focus();
+        }
+
+        function appendMessage(text, className) {
+            const div = document.createElement('div');
+            div.className = `message ${className}`;
+            div.innerText = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Enter tuşu ile gönderme
+        messageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
