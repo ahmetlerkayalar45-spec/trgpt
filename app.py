@@ -44,7 +44,7 @@ def chat():
 
     try:
         response = client.chat.completions.create(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             messages=messages,
             max_tokens=500
         )
