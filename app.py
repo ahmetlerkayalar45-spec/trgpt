@@ -8,17 +8,12 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["50 per day", "10 per hour"], 
-    storage_uri="memory://"
-)
+limiter = Limiter(get_remote_address, app=app, default_limits=["50 per day"])
 
-# Sadece Groq motoru (Çalıştığını biliyoruz)
+# KENDİ BEYNİMİZ (Hugging Face)
 client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
+    api_key=os.getenv("HF_TOKEN"), 
+    base_url="https://api-inference.huggingface.co/models/ahmetaimaker/trgpt-model/v1" 
 )
 
 @app.route('/')
@@ -30,28 +25,20 @@ def home():
 def chat():
     data = request.json
     user_message = data.get('message')
-    chat_history = data.get('history', [])
-
+    
     if not user_message:
-        return jsonify({"error": "Mesaj boş olamaz"}), 400
-
-    if len(user_message) > 300:
-        return jsonify({"error": "Aga bu ne? Mesaj çok uzun, lütfen 300 karakteri geçme!"}), 400
-
-    messages = [{"role": "system", "content": "Senin adın TRGPT. Yardımcı, zeki ve samimi bir Türkçe yapay zeka asistanısın."}]
-    messages.extend(chat_history[-10:]) 
-    messages.append({"role": "user", "content": user_message})
+        return jsonify({"error": "Mesaj boş"}), 400
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            max_tokens=500
+            model="trgpt-model", 
+            messages=[{"role": "user", "content": user_message}],
+            max_tokens=200
         )
         return jsonify({"reply": response.choices[0].message.content})
     except Exception as e:
-        print(f"Groq Hatası: {e}")
-        return jsonify({"error": "Sunucu yoğun. Lütfen 10 saniye sonra tekrar dene."}), 500
+        print(f"Hata: {e}")
+        return jsonify({"error": "Beyin uyanmadı, birazdan tekrar dene."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
