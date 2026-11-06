@@ -18,11 +18,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'auth' # Giriş yapılmazsa auth sayfasına at
 
 limiter = Limiter(get_remote_address, app=app, default_limits=["50 per day"])
 
-# --- VERİTABANI ---
+# --- VERİTABANI MODELİ ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -34,71 +34,70 @@ def load_user(user_id):
 
 # --- YAPAY ZEKA MOTORLARI ---
 clients = [
+    # 1. Groq (En hızlı)
     {"name": "Groq", "client": OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1"), "model": "openai/gpt-oss-120b"},
+    
+    # 2. Gemini (En akıllı yedek)
     {"name": "Gemini", "client": OpenAI(api_key=os.getenv("GEMINI_API_KEY"), base_url="https://generativelanguage.googleapis.com/v1beta/openai/"), "model": "gemini-2.5-flash"},
+    
+    # 3. OpenRouter (Ücretsiz model)
     {"name": "OpenRouter", "client": OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"), base_url="https://openrouter.ai/api/v1"), "model": "openai/gpt-oss-120b:free"},
+    
+    # 4. Mistral (Son kale)
     {"name": "Mistral", "client": OpenAI(api_key=os.getenv("MISTRAL_API_KEY"), base_url="https://api.mistral.ai/v1"), "model": "mistral-small-latest"}
 ]
 
 # --- ROTALAR ---
+
 @app.route('/')
 def index():
-    # EĞER GİRİŞ YAPILMIŞSA DİREKT SOHBETE GİT (if loginned goto the page)
+    # EĞER GİRİŞ YAPILMIŞSA DİREKT SOHBETE GİT
     if current_user.is_authenticated:
         return redirect(url_for('chat_page'))
-    return redirect(url_for('login'))
+    return redirect(url_for('auth'))
+
+@app.route('/auth', methods=['GET', 'POST'])
+def auth():
+    # Giriş yapmış biri tekrar giriş sayfasına gelemez
+    if current_user.is_authenticated:
+        return redirect(url_for('chat_page'))
+        
+    if request.method == 'POST':
+        action = request.form.get('action')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if action == 'login':
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password_hash, password):
+                login_user(user)
+                return redirect(url_for('chat_page'))
+            flash('Hatalı kullanıcı adı veya şifre!', 'error')
+            
+        elif action == 'register':
+            if len(password) < 4:
+                flash('Şifreniz en az 4 karakter olmalıdır!', 'error')
+            elif User.query.filter_by(username=username).first():
+                flash('Bu kullanıcı adı zaten alınmış!', 'error')
+            else:
+                new_user = User(username=username, password_hash=generate_password_hash(password))
+                db.session.add(new_user)
+                db.session.commit()
+                flash('Hesap başarıyla oluşturuldu, şimdi giriş yapabilirsiniz!', 'success')
+                return redirect(url_for('auth')) # Kayıttan sonra tekrar auth sayfasına (giriş sekmesi açık gelir)
+
+    return render_template('auth.html')
 
 @app.route('/chat-page')
 @login_required
 def chat_page():
     return render_template('index.html', username=current_user.username)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('chat_page'))
-        
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            return redirect(url_for('chat_page'))
-        flash('Hatalı kullanıcı adı veya şifre!', 'error')
-    return render_template('login.html')
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('chat_page'))
-
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        if len(password) < 4:
-            flash('Şifreniz en az 4 karakter olmalıdır!', 'error')
-            return redirect(url_for('register'))
-
-        if User.query.filter_by(username=username).first():
-            flash('Bu kullanıcı adı zaten alınmış!', 'error')
-            return redirect(url_for('register'))
-        
-        new_user = User(username=username, password_hash=generate_password_hash(password))
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Hesap başarıyla oluşturuldu, giriş yapabilirsiniz!', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
-
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('auth'))
 
 @app.route('/api/chat', methods=['POST'])
 @login_required
@@ -111,10 +110,12 @@ def api_chat():
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    messages = [{"role": "system", "content": "Senin adın TRGPT. Ahmet tarafından geliştirilen, yardımcı, zeki ve samimi bir Türkçe yapay zeka asistanısın."}]
+    # Hafıza ve Karakter
+    messages = [{"role": "system", "content": "Senin adın TRGPT. Ahmet tarafından geliştirilen, yardımcı, zeki ve samimi bir Türkçe yapay zeka asistanısın. Cevaplarını kısa, öz ve doğal tut."}]
     messages.extend(chat_history[-10:]) 
     messages.append({"role": "user", "content": user_message})
 
+    # Motorları sırayla dene (Fallback)
     for api in clients:
         try:
             print(f"[{api['name']}] deneniyor...")
@@ -123,12 +124,13 @@ def api_chat():
                 messages=messages,
                 max_tokens=500
             )
+            print(f"✅ [{api['name']}] BAŞARILI!")
             return jsonify({"reply": response.choices[0].message.content})
         except Exception as e:
             print(f"❌ [{api['name']}] Hatası: {e}")
             continue
 
-    return jsonify({"error": "Tüm sunucular şu an yoğun. Lütfen birazdan tekrar dene."}), 500
+    return jsonify({"error": "Şu an tüm sunucularımız çok yoğun. Lütfen birazdan tekrar dene."}), 500
 
 # --- VERİTABANINI OLUŞTUR ---
 with app.app_context():
