@@ -2,5 +2,6 @@ Flask
 openai
 python-dotenv
 gunicorn
-Flask_Limiter
-freellmpool
+Flask-Limiter
+Flask-Login
+Flask-SQLAlchemy
