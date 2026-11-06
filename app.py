@@ -11,18 +11,20 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# --- AYARLAR ---
+# --- GÜVENLİK VE VERİTABANI AYARLARI ---
 app.config['SECRET_KEY'] = 'trgpt-super-secret-key-123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trgpt.db'
+# Render için önemli: Veritabanını /tmp klasöründe tut (burası her zaman yazılabilir)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/trgpt.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'auth' # Giriş yapılmazsa auth sayfasına at
 
+# API koruması için hız sınırı
 limiter = Limiter(get_remote_address, app=app, default_limits=["50 per day"])
 
-# --- VERİTABANI MODELİ ---
+# --- VERİTABANI MODELİ (Kullanıcılar) ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -32,7 +34,7 @@ class User(UserMixin, db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- YAPAY ZEKA MOTORLARI ---
+# --- YAPAY ZEKA MOTORLARI (4 Farklı Sağlayıcı) ---
 clients = [
     # 1. Groq (En hızlı)
     {"name": "Groq", "client": OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1"), "model": "openai/gpt-oss-120b"},
@@ -84,7 +86,7 @@ def auth():
                 db.session.add(new_user)
                 db.session.commit()
                 flash('Hesap başarıyla oluşturuldu, şimdi giriş yapabilirsiniz!', 'success')
-                return redirect(url_for('auth')) # Kayıttan sonra tekrar auth sayfasına (giriş sekmesi açık gelir)
+                return redirect(url_for('auth'))
 
     return render_template('auth.html')
 
@@ -133,6 +135,7 @@ def api_chat():
     return jsonify({"error": "Şu an tüm sunucularımız çok yoğun. Lütfen birazdan tekrar dene."}), 500
 
 # --- VERİTABANINI OLUŞTUR ---
+# Uygulama ilk çalıştığında tabloları oluşturur
 with app.app_context():
     db.create_all()
 
