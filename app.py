@@ -15,10 +15,10 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
-# Sadece Gemini motoru (En cömert ücretsiz limit)
+# Sadece Groq motoru (Çalıştığını biliyoruz)
 client = OpenAI(
-    api_key=os.getenv("GEMINI_API_KEY"),
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
 )
 
 @app.route('/')
@@ -44,13 +44,13 @@ def chat():
 
     try:
         response = client.chat.completions.create(
-            model="gemini-2.5-flash",
+            model="llama-3.3-70b-versatile",
             messages=messages,
             max_tokens=500
         )
         return jsonify({"reply": response.choices[0].message.content})
     except Exception as e:
-        print(f"Gemini Hatası: {e}")
+        print(f"Groq Hatası: {e}")
         return jsonify({"error": "Sunucu yoğun. Lütfen 10 saniye sonra tekrar dene."}), 500
 
 if __name__ == '__main__':
