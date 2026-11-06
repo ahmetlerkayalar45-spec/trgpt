@@ -19,12 +19,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'auth' # Giriş yapılmazsa auth sayfasına at
+login_manager.login_view = 'auth'
 
-# API koruması için hız sınırı
 limiter = Limiter(get_remote_address, app=app, default_limits=["50 per day"])
 
-# --- VERİTABANI MODELİ (Kullanıcılar) ---
+# --- VERİTABANI MODELİ ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -34,18 +33,11 @@ class User(UserMixin, db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- YAPAY ZEKA MOTORLARI (4 Farklı Sağlayıcı) ---
+# --- YAPAY ZEKA MOTORLARI ---
 clients = [
-    # 1. Groq (En hızlı)
     {"name": "Groq", "client": OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1"), "model": "openai/gpt-oss-120b"},
-    
-    # 2. Gemini (En akıllı yedek)
     {"name": "Gemini", "client": OpenAI(api_key=os.getenv("GEMINI_API_KEY"), base_url="https://generativelanguage.googleapis.com/v1beta/openai/"), "model": "gemini-2.5-flash"},
-    
-    # 3. OpenRouter (Ücretsiz model)
     {"name": "OpenRouter", "client": OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"), base_url="https://openrouter.ai/api/v1"), "model": "openai/gpt-oss-120b:free"},
-    
-    # 4. Mistral (Son kale)
     {"name": "Mistral", "client": OpenAI(api_key=os.getenv("MISTRAL_API_KEY"), base_url="https://api.mistral.ai/v1"), "model": "mistral-small-latest"}
 ]
 
@@ -53,16 +45,17 @@ clients = [
 
 @app.route('/')
 def index():
-    # EĞER GİRİŞ YAPILMIŞSA DİREKT SOHBETE GİT
+    # Eğer kullanıcı giriş yapmışsa doğrudan sohbet ekranını (index.html) göster
     if current_user.is_authenticated:
-        return redirect(url_for('chat_page'))
+        return render_template('index.html', username=current_user.username)
+    # Giriş yapmamışsa auth (giriş/kayıt) sayfasına yönlendir
     return redirect(url_for('auth'))
 
 @app.route('/auth', methods=['GET', 'POST'])
 def auth():
-    # Giriş yapmış biri tekrar giriş sayfasına gelemez
+    # Zaten giriş yapmış biri buraya gelemez, ana sayfaya at
     if current_user.is_authenticated:
-        return redirect(url_for('chat_page'))
+        return redirect(url_for('index'))
         
     if request.method == 'POST':
         action = request.form.get('action')
@@ -73,7 +66,7 @@ def auth():
             user = User.query.filter_by(username=username).first()
             if user and check_password_hash(user.password_hash, password):
                 login_user(user)
-                return redirect(url_for('chat_page'))
+                return redirect(url_for('index')) # Giriş başarılı, ana sayfaya (sohbete) git
             flash('Hatalı kullanıcı adı veya şifre!', 'error')
             
         elif action == 'register':
@@ -86,14 +79,9 @@ def auth():
                 db.session.add(new_user)
                 db.session.commit()
                 flash('Hesap başarıyla oluşturuldu, şimdi giriş yapabilirsiniz!', 'success')
-                return redirect(url_for('auth'))
+                return redirect(url_for('auth')) # Kayıt başarılı, tekrar giriş ekranına dön
 
     return render_template('auth.html')
-
-@app.route('/chat-page')
-@login_required
-def chat_page():
-    return render_template('index.html', username=current_user.username)
 
 @app.route('/logout')
 @login_required
@@ -135,7 +123,6 @@ def api_chat():
     return jsonify({"error": "Şu an tüm sunucularımız çok yoğun. Lütfen birazdan tekrar dene."}), 500
 
 # --- VERİTABANINI OLUŞTUR ---
-# Uygulama ilk çalıştığında tabloları oluşturur
 with app.app_context():
     db.create_all()
 
