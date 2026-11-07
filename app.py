@@ -8,18 +8,18 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Günlük 200 mesaj sınırı (API kotanı korur)
-limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day"])
+# Günlük 100 mesaj sınırı
+limiter = Limiter(get_remote_address, app=app, default_limits=["100 per day"])
 
-# --- 10 MOTORLU YENİLMEZ SİSTEM (Stabilite Sırasına Göre) ---
+# --- 10 MOTORLU YENİLMEZ SİSTEM (Hata Önleyici Sıralama) ---
 clients = [
-    # 1. OpenRouter (En stabil, günlük limiti yüksek)
+    # 1. OpenRouter (En stabil, 404 ve limit hatası en az olan)
     {"name": "OpenRouter", "client": OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"), base_url="https://openrouter.ai/api/v1"), "model": "meta-llama/llama-3.1-8b-instruct:free"},
     
-    # 2. Groq (En hızlı, dakikada 30 istek)
+    # 2. Groq (En hızlı, 404 hatası vermemesi için güncel model)
     {"name": "Groq", "client": OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1"), "model": "llama-3.1-8b-instant"},
     
-    # 3. Gemini (Akıllı yedek)
+    # 3. Gemini (400 hatası vermemesi için 1.5-flash)
     {"name": "Gemini", "client": OpenAI(api_key=os.getenv("GEMINI_API_KEY"), base_url="https://generativelanguage.googleapis.com/v1beta/openai/"), "model": "gemini-1.5-flash"},
     
     # 4. Mistral
@@ -34,13 +34,13 @@ clients = [
     # 7. HuggingFace
     {"name": "HuggingFace", "client": OpenAI(api_key=os.getenv("HF_TOKEN"), base_url="https://api-inference.huggingface.co/v1"), "model": "meta-llama/Meta-Llama-3-8B-Instruct"},
     
-    # 8. Requesty (Yeni, günlük 200 istek)
+    # 8. Requesty
     {"name": "Requesty", "client": OpenAI(api_key=os.getenv("REQUESTY_API_KEY"), base_url="https://router.requesty.ai/v1"), "model": "meta-llama/llama-3.3-70b-instruct"},
     
-    # 9. LLM7 (Yeni, saatlik limiti var)
+    # 9. LLM7
     {"name": "LLM7", "client": OpenAI(api_key=os.getenv("LLM7_API_KEY"), base_url="https://api.llm7.io/v1"), "model": "deepseek-r1"},
     
-    # 10. SambaNova (Son çare, ücretsiz katmanda günde sadece 20 istek!)
+    # 10. SambaNova (Son çare, günde 20 istek hakkı var)
     {"name": "SambaNova", "client": OpenAI(api_key=os.getenv("SAMBANOVA_API_KEY"), base_url="https://api.sambanova.ai/v1"), "model": "Meta-Llama-3.3-70B-Instruct"}
 ]
 
@@ -49,7 +49,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/api/chat', methods=['POST'])
-@limiter.limit("5 per minute") # Dakikada en fazla 5 (Spam koruması)
+@limiter.limit("5 per minute") # Dakikada en fazla 5 (Spam ve 429 koruması)
 def api_chat():
     data = request.json
     user_message = data.get('message')
@@ -58,12 +58,12 @@ def api_chat():
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    # Karakter ve Hafıza
+    # Karakter ve Hafıza (Son 10 mesaj)
     messages = [{"role": "system", "content": "Senin adın TRGPT. Ahmet tarafından geliştirilen, son derece zeki, yardımcı ve samimi bir Türkçe yapay zeka asistanısın. Cevaplarını doğal, akıcı ve net ver."}]
     messages.extend(chat_history[-10:]) 
     messages.append({"role": "user", "content": user_message})
 
-    # Motorları sırayla dene (Biri çökerse diğerine geçer)
+    # Motorları sırayla dene (Hata olursa anında diğerine geçer)
     for api in clients:
         try:
             print(f"🔄 [{api['name']}] deneniyor...")
@@ -71,7 +71,7 @@ def api_chat():
                 model=api["model"],
                 messages=messages,
                 max_tokens=800,
-                timeout=10 # 10 saniye içinde cevap gelmezse sonraki motora geç
+                timeout=10 # 10 saniye cevap gelmezse sonraki motora geçer
             )
             print(f"✅ [{api['name']}] BAŞARILI!")
             return jsonify({"reply": response.choices[0].message.content})
@@ -79,8 +79,7 @@ def api_chat():
             print(f"❌ [{api['name']}] Hatası: {str(e)[:100]}...")
             continue # Hata alırsa sıradaki motora geç
 
-    # Eğer 10 motor da çökerse (çok nadir)
-    return jsonify({"error": "Tüm sunucular şu an yoğun. Lütfen 10 saniye sonra tekrar dene."}), 500
+    return jsonify({"error": "Sunucular şu an çok yoğun. Lütfen birazdan tekrar dene."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
