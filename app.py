@@ -1,21 +1,11 @@
 import os
+import requests
 from flask import Flask, request, jsonify, render_template
-from huggingface_hub import InferenceClient
-from dotenv import load_dotenv
 
-load_dotenv()
 app = Flask(__name__)
 
-# Kullanmak istediğin model (Gated olmayan, ücretsiz Qwen)
-MODEL_ID = "Qwen/Qwen2.5-7B-Instruct" 
-HF_TOKEN = os.getenv("HF_TOKEN") 
-
-# ÇÖZÜM: model parametresini SİL, sadece base_url kullan.
-# Model adını URL'nin sonuna ekliyoruz.
-client = InferenceClient(
-    base_url=f"https://api-inference.huggingface.co/models/{MODEL_ID}",
-    token=HF_TOKEN
-)
+# BURAYA NGROK'UN VERDİĞİ ADRESİ YAPIŞTIR (Sonunda /v1 olacak)
+OLLAMA_BASE_URL = "https://giggling-stowing-relocate.ngrok-free.dev/v1"
 
 @app.route('/')
 def home():
@@ -30,17 +20,22 @@ def api_chat():
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
     try:
-        print("🔄 Qwen modeli deneniyor...")
-        response = client.chat_completion(
-            messages=[{"role": "user", "content": user_message}],
-            max_tokens=500
+        response = requests.post(
+            f"{OLLAMA_BASE_URL}/chat/completions",
+            json={
+                "model": "qwen3.5:4b", # İndirdiğin modelin adı
+                "messages": [{"role": "user", "content": user_message}],
+                "max_tokens": 500
+            },
+            timeout=120 # Model yavaş cevap verirse diye süreyi uzun tut
         )
-        print("✅ Qwen BAŞARILI!")
-        return jsonify({"reply": response.choices[0].message.content})
+        
+        result = response.json()
+        return jsonify({"reply": result['choices'][0]['message']['content']})
         
     except Exception as e:
-        print(f"⚠️ Qwen Hatası: {e}")
-        return jsonify({"reply": "Aga beynim şu an uyanıyor, lütfen 10 saniye sonra tekrar dene!"}), 500
+        print(f"Hata: {e}")
+        return jsonify({"reply": "Aga bilgisayarımdaki model şu an cevap veremiyor, lütfen birazdan tekrar dene!"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
