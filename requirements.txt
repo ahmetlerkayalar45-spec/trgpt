@@ -1,4 +1,2 @@
 Flask
-gunicorn
-huggingface-hub
-python-dotenv
+requests
