@@ -1,5 +1,9 @@
 Flask
-openai
-python-dotenv
 gunicorn
-Flask-Limiter
+transformers
+torch
+accelerate
+peft
+bitsandbytes
+huggingface-hub
+python-dotenv
