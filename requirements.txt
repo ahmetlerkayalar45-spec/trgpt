@@ -3,5 +3,3 @@ openai
 python-dotenv
 gunicorn
 Flask-Limiter
-Flask-Login
-Flask-SQLAlchemy
