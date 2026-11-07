@@ -1,54 +1,78 @@
-import json
 import os
+import torch
 from flask import Flask, request, jsonify, render_template
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from peft import PeftModel
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 
-limiter = Limiter(get_remote_address, app=app, default_limits=["100 per day"])
+# Hugging Face token'ın (Render'da Environment'a ekle)
+HF_TOKEN = os.getenv("HF_TOKEN") 
 
-# Cache dosyasını yükle
-CACHE_FILE = 'cache.json'
-if os.path.exists(CACHE_FILE):
-    with open(CACHE_FILE, 'r', encoding='utf-8') as f:
-        CACHE = json.load(f)
-else:
-    CACHE = {}
+# Model isimleri
+BASE_MODEL = "unsloth/llama-3-8b-Instruct-bnb-4bit"
+ADAPTER_MODEL = "ahmetaimaker/trgpt-model"
+
+print("Modeller yükleniyor, lütfen bekleyin...")
+
+# 1. Tokenizer'ı yükle
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, token=HF_TOKEN)
+
+# 2. Ana modeli yükle (4-bit olarak, RAM tasarrufu için)
+model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    token=HF_TOKEN,
+    load_in_4bit=True,
+    device_map="auto",
+    torch_dtype=torch.float16
+)
+
+# 3. Senin eğittiğin TRGPT karakterini (Adaptörü) yükle
+model = PeftModel.from_pretrained(model, ADAPTER_MODEL, token=HF_TOKEN)
+
+# 4. Modeli birleştir (Merge) - Artık tek parça halinde
+model = model.merge_and_unload()
+
+# 5. Metin üretim hattını (Pipeline) oluştur
+generator = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
+print("✅ TRGPT beyni hazır!")
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/api/chat', methods=['POST'])
-@limiter.limit("10 per minute")
 def api_chat():
     data = request.json
-    user_message = data.get('message', '').strip().lower()
+    user_message = data.get('message')
     
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    # 1. ADIM: Tam Eşleşme (Anında bulur)
-    if user_message in CACHE:
-        return jsonify({"reply": CACHE[user_message]})
-
-    # 2. ADIM: Kelimelere Ayır ve İndeksle (80.000 soru için hız optimizasyonu)
-    # Kullanıcının yazdığı cümleyi kelimelere böleriz
-    words = user_message.split()
-    
-    # Sadece yazılan kelimelerin cache'de olup olmadığına bakar
-    for word in words:
-        if word in CACHE:
-            return jsonify({"reply": CACHE[word]})
-            
-    # 3. ADIM: Cümle içinde geçiyor mu? (Daha yavaş ama son çare)
-    for key, reply in CACHE.items():
-        if key in user_message:
-            return jsonify({"reply": reply})
-
-    # 4. ADIM: Bulunamazsa
-    return jsonify({"reply": "Aga bunu henüz öğrenmedim ama yakında öğreneceğim! Başka bir şey sormak ister misin?"}), 200
+    try:
+        # Modelden cevap üret
+        prompt = f"<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n{user_message}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+        
+        result = generator(
+            prompt, 
+            max_new_tokens=200, 
+            do_sample=True, 
+            temperature=0.7,
+            pad_token_id=tokenizer.eos_token_id
+        )
+        
+        # Sadece asistanın cevabını al
+        full_text = result[0]['generated_text']
+        reply = full_text.split("<|start_header_id|>assistant<|end_header_id|>\n\n")[-1]
+        
+        return jsonify({"reply": reply.strip()})
+        
+    except Exception as e:
+        print(f"Hata: {e}")
+        return jsonify({"reply": "Aga beynim çok yoruldu, birazdan tekrar dene."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
