@@ -12,9 +12,9 @@
             --sidebar-bg: rgba(20, 20, 30, 0.6);
             --text-primary: #ffffff;
             --text-secondary: #a0a0b8;
-            --accent-1: #ff2a75; /* Neon Pembe */
-            --accent-2: #7000ff; /* Elektrik Moru */
-            --accent-3: #00d2ff; /* Neon Mavi */
+            --accent-1: #ff2a75;
+            --accent-2: #7000ff;
+            --accent-3: #00d2ff;
             --bot-bg: rgba(30, 30, 45, 0.7);
             --input-bg: rgba(30, 30, 45, 0.8);
         }
@@ -312,7 +312,6 @@
         <div id="chat-container"></div>
 
         <div id="input-container">
-            <!-- Karakter Sayacı -->
             <div class="char-counter" id="char-counter">0 / 300</div>
             
             <div id="input-box">
@@ -381,7 +380,7 @@
                 });
             }
             renderHistory();
-            updateCharCounter(); // Sohbet değişince sayacı sıfırla
+            updateCharCounter(); 
         }
 
         function appendMessage(text, sender, save = true) {
@@ -421,7 +420,6 @@
             }
         }
 
-        // Karakter Sayacı Mantığı
         const messageInput = document.getElementById('message-input');
         const charCounter = document.getElementById('char-counter');
         const MAX_CHARS = 300;
@@ -445,7 +443,7 @@
 
             messageInput.value = '';
             messageInput.style.height = 'auto';
-            updateCharCounter(); // Gönderince sayacı sıfırla
+            updateCharCounter(); 
             
             const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = true;
