@@ -8,18 +8,18 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Hız sınırını biraz daha esnek yaptık (dakikada 10)
-limiter = Limiter(get_remote_address, app=app, default_limits=["100 per day"])
+# Günlük 200 mesaj sınırı
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day"])
 
-# --- EN STABİL 7 MOTOR ---
+# --- 7 MOTORLU YENİLMEZ YAPAY ZEKA SİSTEMİ ---
 clients = [
-    # 1. OpenRouter (Genelde en stabil çalışan ücretsiz model)
+    # 1. OpenRouter (En stabil ücretsiz model)
     {"name": "OpenRouter", "client": OpenAI(api_key=os.getenv("OPENROUTER_API_KEY"), base_url="https://openrouter.ai/api/v1"), "model": "meta-llama/llama-3.1-8b-instruct:free"},
     
-    # 2. Groq (Çok hızlı, yeni model)
+    # 2. Groq (En hızlı)
     {"name": "Groq", "client": OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1"), "model": "llama-3.1-8b-instant"},
     
-    # 3. Gemini (Eğer 404 verirse diye model adını daha güvenli olanla değiştirdik)
+    # 3. Gemini (En akıllı)
     {"name": "Gemini", "client": OpenAI(api_key=os.getenv("GEMINI_API_KEY"), base_url="https://generativelanguage.googleapis.com/v1beta/openai/"), "model": "gemini-1.5-flash"},
     
     # 4. Mistral
@@ -28,10 +28,10 @@ clients = [
     # 5. Z.ai
     {"name": "Z.ai", "client": OpenAI(api_key=os.getenv("ZAI_API_KEY"), base_url="https://api.z.ai/api/paas/v4"), "model": "glm-4-flash"},
     
-    # 6. GitHub Models (Sağlam yedek)
+    # 6. GitHub Models
     {"name": "GitHub", "client": OpenAI(api_key=os.getenv("GITHUB_TOKEN"), base_url="https://models.inference.ai.azure.com"), "model": "gpt-4o-mini"},
     
-    # 7. Hugging Face (En son çare)
+    # 7. Hugging Face
     {"name": "HuggingFace", "client": OpenAI(api_key=os.getenv("HF_TOKEN"), base_url="https://api-inference.huggingface.co/v1"), "model": "meta-llama/Meta-Llama-3-8B-Instruct"}
 ]
 
@@ -40,7 +40,7 @@ def home():
     return render_template('index.html')
 
 @app.route('/api/chat', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per minute") # Dakikada en fazla 5 (Spam koruması)
 def api_chat():
     data = request.json
     user_message = data.get('message')
@@ -49,12 +49,12 @@ def api_chat():
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    # Hafıza ve Karakter
+    # Karakter ve Hafıza
     messages = [{"role": "system", "content": "Senin adın TRGPT. Ahmet tarafından geliştirilen, son derece zeki, yardımcı ve samimi bir Türkçe yapay zeka asistanısın. Cevaplarını doğal, akıcı ve net ver."}]
     messages.extend(chat_history[-10:]) 
     messages.append({"role": "user", "content": user_message})
 
-    # Motorları sırayla dene
+    # Motorları sırayla dene (Biri çökerse diğerine geçer)
     for api in clients:
         try:
             print(f"🔄 [{api['name']}] deneniyor...")
@@ -66,7 +66,6 @@ def api_chat():
             print(f"✅ [{api['name']}] BAŞARILI!")
             return jsonify({"reply": response.choices[0].message.content})
         except Exception as e:
-            # Loglarda hangi motorun neden çöktüğünü daha net görelim
             print(f"❌ [{api['name']}] Hatası: {str(e)[:100]}...")
             continue
 
