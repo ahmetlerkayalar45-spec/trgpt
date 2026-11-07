@@ -6,10 +6,9 @@ from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 
-# Dakikada 10 mesaj sınırı
 limiter = Limiter(get_remote_address, app=app, default_limits=["100 per day"])
 
-# Cache dosyasını yükle (Eğer dosya yoksa boş bir sözlük oluştur)
+# Cache dosyasını yükle
 CACHE_FILE = 'cache.json'
 if os.path.exists(CACHE_FILE):
     with open(CACHE_FILE, 'r', encoding='utf-8') as f:
@@ -30,13 +29,17 @@ def api_chat():
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    # SADECE CACHE KONTROLÜ
+    # 1. ADIM: Tam Eşleşme
     if user_message in CACHE:
-        print(f"⚡ CACHE'DEN CEVAP VERİLDİ: {user_message}")
         return jsonify({"reply": CACHE[user_message]})
-    else:
-        print(f"❓ CACHE'DE YOK: {user_message}")
-        return jsonify({"reply": "Aga bunu henüz öğrenmedim ama yakında öğreneceğim! Başka bir şey sormak ister misin?"}), 200
+
+    # 2. ADIM: Akıllı Arama (İçinde geçiyor mu?)
+    for key, reply in CACHE.items():
+        if key in user_message:
+            return jsonify({"reply": reply})
+
+    # 3. ADIM: Bulunamazsa
+    return jsonify({"reply": "Aga bunu henüz öğrenmedim ama yakında öğreneceğim! Başka bir şey sormak ister misin?"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
