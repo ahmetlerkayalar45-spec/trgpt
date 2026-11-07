@@ -33,7 +33,7 @@
             overflow: hidden; 
         }
 
-        /* --- SOL MENÜ (Cam Efektli ve Renkli) --- */
+        /* --- SOL MENÜ --- */
         #sidebar { 
             width: 280px; 
             background: var(--sidebar-bg); 
@@ -175,9 +175,23 @@
             box-shadow: 0 4px 20px rgba(255, 42, 117, 0.2);
         }
 
-        /* --- GİRİŞ ALANI --- */
+        /* --- GİRİŞ ALANI VE SAYAÇ --- */
         #input-container { padding: 20px 30px 30px 30px; }
         
+        .char-counter {
+            max-width: 800px;
+            margin: 0 auto 5px auto;
+            text-align: right;
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding-right: 15px;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .char-counter.limit-reached {
+            color: var(--accent-1);
+        }
+
         #input-box { 
             max-width: 800px; 
             margin: 0 auto; 
@@ -298,8 +312,11 @@
         <div id="chat-container"></div>
 
         <div id="input-container">
+            <!-- Karakter Sayacı -->
+            <div class="char-counter" id="char-counter">0 / 300</div>
+            
             <div id="input-box">
-                <textarea id="message-input" rows="1" placeholder="TRGPT'ye mesaj yazın..." oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
+                <textarea id="message-input" rows="1" placeholder="TRGPT'ye mesaj yazın..." maxlength="300" oninput="this.style.height = '';this.style.height = this.scrollHeight + 'px'"></textarea>
                 <button id="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
@@ -364,6 +381,7 @@
                 });
             }
             renderHistory();
+            updateCharCounter(); // Sohbet değişince sayacı sıfırla
         }
 
         function appendMessage(text, sender, save = true) {
@@ -403,16 +421,36 @@
             }
         }
 
+        // Karakter Sayacı Mantığı
+        const messageInput = document.getElementById('message-input');
+        const charCounter = document.getElementById('char-counter');
+        const MAX_CHARS = 300;
+
+        function updateCharCounter() {
+            const currentLength = messageInput.value.length;
+            charCounter.innerText = `${currentLength} / ${MAX_CHARS}`;
+            
+            if (currentLength >= MAX_CHARS) {
+                charCounter.classList.add('limit-reached');
+            } else {
+                charCounter.classList.remove('limit-reached');
+            }
+        }
+
+        messageInput.addEventListener('input', updateCharCounter);
+
         async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const sendBtn = document.getElementById('send-btn');
-            const text = input.value.trim();
+            const text = messageInput.value.trim();
             if (!text) return;
 
-            input.value = '';
-            input.style.height = 'auto';
-            appendMessage(text, 'user');
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            updateCharCounter(); // Gönderince sayacı sıfırla
+            
+            const sendBtn = document.getElementById('send-btn');
             sendBtn.disabled = true;
+
+            appendMessage(text, 'user');
 
             const container = document.getElementById('chat-container');
             const typingRow = document.createElement('div');
@@ -449,10 +487,10 @@
             }
 
             sendBtn.disabled = false;
-            input.focus();
+            messageInput.focus();
         }
 
-        document.getElementById('message-input').addEventListener('keydown', function(e) {
+        messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
