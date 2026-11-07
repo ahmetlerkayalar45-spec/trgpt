@@ -6,15 +6,14 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Hugging Face'in kendi hazır modeli
-MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct" 
+# GATED OLMAYAN, TAMAMEN ÜCRETSİZ VE ÇOK ZEKİ MODEL (Qwen)
+MODEL_ID = "Qwen/Qwen2.5-7B-Instruct" 
 HF_TOKEN = os.getenv("HF_TOKEN") 
 
-# ÜCRETLİ ROUTER YERİNE ÜCRETSİZ SUNUCUYA BAĞLAN
 client = InferenceClient(
     model=MODEL_ID,
     token=HF_TOKEN,
-    base_url="https://api-inference.huggingface.co"  # <-- ÇÖZÜM BURADA
+    base_url="https://api-inference.huggingface.co" 
 )
 
 @app.route('/')
@@ -30,15 +29,17 @@ def api_chat():
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
     try:
+        print("🔄 Qwen modeli deneniyor...")
         response = client.chat_completion(
             messages=[{"role": "user", "content": user_message}],
             max_tokens=500
         )
+        print("✅ Qwen BAŞARILI!")
         return jsonify({"reply": response.choices[0].message.content})
         
     except Exception as e:
-        print(f"Hata: {e}")
-        return jsonify({"reply": "Beynim şu an uyanıyor, lütfen 10 saniye sonra tekrar dene!"}), 500
+        print(f"⚠️ Qwen Hatası: {e}")
+        return jsonify({"reply": "Aga beynim şu an uyanıyor, lütfen 10 saniye sonra tekrar dene!"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
