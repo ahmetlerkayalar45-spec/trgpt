@@ -1,9 +1,4 @@
 Flask
 gunicorn
-transformers
-torch
-accelerate
-peft
-bitsandbytes
 huggingface-hub
 python-dotenv
