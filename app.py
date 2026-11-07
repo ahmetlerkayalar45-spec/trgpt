@@ -6,14 +6,15 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# GATED OLMAYAN, TAMAMEN ÜCRETSİZ VE ÇOK ZEKİ MODEL (Qwen)
+# Kullanmak istediğin model (Gated olmayan, ücretsiz Qwen)
 MODEL_ID = "Qwen/Qwen2.5-7B-Instruct" 
 HF_TOKEN = os.getenv("HF_TOKEN") 
 
+# ÇÖZÜM: model parametresini SİL, sadece base_url kullan.
+# Model adını URL'nin sonuna ekliyoruz.
 client = InferenceClient(
-    model=MODEL_ID,
-    token=HF_TOKEN,
-    base_url="https://api-inference.huggingface.co" 
+    base_url=f"https://api-inference.huggingface.co/models/{MODEL_ID}",
+    token=HF_TOKEN
 )
 
 @app.route('/')
