@@ -29,16 +29,25 @@ def api_chat():
     if not user_message:
         return jsonify({"error": "Mesaj boş olamaz"}), 400
 
-    # 1. ADIM: Tam Eşleşme
+    # 1. ADIM: Tam Eşleşme (Anında bulur)
     if user_message in CACHE:
         return jsonify({"reply": CACHE[user_message]})
 
-    # 2. ADIM: Akıllı Arama (İçinde geçiyor mu?)
+    # 2. ADIM: Kelimelere Ayır ve İndeksle (80.000 soru için hız optimizasyonu)
+    # Kullanıcının yazdığı cümleyi kelimelere böleriz
+    words = user_message.split()
+    
+    # Sadece yazılan kelimelerin cache'de olup olmadığına bakar
+    for word in words:
+        if word in CACHE:
+            return jsonify({"reply": CACHE[word]})
+            
+    # 3. ADIM: Cümle içinde geçiyor mu? (Daha yavaş ama son çare)
     for key, reply in CACHE.items():
         if key in user_message:
             return jsonify({"reply": reply})
 
-    # 3. ADIM: Bulunamazsa
+    # 4. ADIM: Bulunamazsa
     return jsonify({"reply": "Aga bunu henüz öğrenmedim ama yakında öğreneceğim! Başka bir şey sormak ister misin?"}), 200
 
 if __name__ == '__main__':
