@@ -1,5 +1,4 @@
 Flask
 gunicorn
 huggingface-hub
-openai
 python-dotenv
