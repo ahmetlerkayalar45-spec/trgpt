@@ -6,11 +6,16 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Hugging Face'in kendi hazır modeli (Senin LoRA adaptörün yerine)
+# Hugging Face'in kendi hazır modeli
 MODEL_ID = "meta-llama/Meta-Llama-3-8B-Instruct" 
 HF_TOKEN = os.getenv("HF_TOKEN") 
 
-client = InferenceClient(model=MODEL_ID, token=HF_TOKEN)
+# ÜCRETLİ ROUTER YERİNE ÜCRETSİZ SUNUCUYA BAĞLAN
+client = InferenceClient(
+    model=MODEL_ID,
+    token=HF_TOKEN,
+    base_url="https://api-inference.huggingface.co"  # <-- ÇÖZÜM BURADA
+)
 
 @app.route('/')
 def home():
