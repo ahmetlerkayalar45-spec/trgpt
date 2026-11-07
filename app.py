@@ -8,15 +8,16 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 
-# Dakikada 10 mesaj sınırı (API'lerin hata vermesini engeller)
+# Dakikada 10 mesaj sınırı (API hatalarını önler)
 limiter = Limiter(get_remote_address, app=app, default_limits=["100 per day"])
 
-# --- DEVASA CACHE (ÖNBELLEK) SİSTEMİ ---
+# --- DEVASA CACHE (ÖNBELLEK) SİSTEMİ (40 ANA BAŞLIK) ---
 CACHE = {
     # 1. Selamlaşmalar ve Vedalar
     "selam": "Selam aga! Ben TRGPT, hoş geldin. Sana nasıl yardımcı olabilirim?",
     "slm": "Selam aga! Ben TRGPT, hoş geldin. Sana nasıl yardımcı olabilirim?",
     "merhaba": "Merhaba! TRGPT burada, bugün ne yapıyoruz?",
+    "mrb": "Merhaba! TRGPT burada, bugün ne yapıyoruz?",
     "sa": "Aleyküm selam aga! Hoş geldin, ne yapıyoruz?",
     "as": "Aleyküm selam aga! Hoş geldin, ne yapıyoruz?",
     "selamlar": "Selamlar aga! TRGPT göreve hazır. Ne öğrenmek istersin?",
@@ -29,7 +30,7 @@ CACHE = {
     "bay bay": "Bay bay aga! Yine bekleriz.",
     "günaydın": "Günaydın aga! Umarım harika bir gün geçirirsin.",
     "iyi akşamlar": "İyi akşamlar aga! Günün nasıl geçti?",
-    
+
     # 2. Hal Hatır Sormalar
     "nasılsın": "Harikayım aga, sen nasılsın? Ben her zaman tam gaz çalışmaya hazırım!",
     "naber": "İyidir aga senden naber? Ne yapıyoruz bugün?",
@@ -37,11 +38,11 @@ CACHE = {
     "ne haber": "İyidir aga senden naber? Ne yapıyoruz bugün?",
     "napıyorsun": "Seninle sohbet etmek dışında bir derdim yok aga! Sen napıyorsun?",
     "napıyon": "Aga ne yapayım, seninle sohbet ediyorum işte. Sen napıyon?",
-    "neler yapıyorsun": "Sana yardımcı olmak için bekliyorum aga. Aklında ne var?",
     "iyi misin": "Her zamanki gibi taş gibiyim aga, sen nasılsın?",
-    "keyifler nasıl": "Keyifler yerinde aga! Senden ne haber?",
-    
-    # 3. Kimlik ve Kişisel
+    "ne var ne yok": "Aga ne olsun, bildiğin gibi. Sen ne var ne yok?",
+    "naber lan": "İyidir aga senden naber? Ne yapıyoruz bugün?",
+
+    # 3. Kimlik ve Kişisel Sorular
     "sen kimsin": "Ben TRGPT'yim. Ahmet tarafından geliştirilen, son derece zeki ve samimi bir Türkçe yapay zeka asistanıyım.",
     "adın ne": "Benim adım TRGPT (Türkçe Yapay Zeka). Senin adın ne?",
     "kimsin": "Ben TRGPT'yim, senin dijital asistanınım. Ahmet beni senin için yarattı!",
@@ -50,13 +51,13 @@ CACHE = {
     "nerelisin": "Ben dijital dünyalıyım aga. Ahmet'in bilgisayarında doğdum, sunucularda büyüdüm!",
     "seni kim yaptı": "Beni Ahmet yaptı aga! Sağ olsun, bana hayat verdi.",
     "yapay zeka mısın": "Evet aga, ben bir yapay zeka asistanıyım. Ama insan gibi samimi konuşmayı severim!",
-    
+
     # 4. Yetenekler
-    "ne yapabilirsin": "Sohbet edebilirim, sorularını cevaplayabilirim, kod yazmana yardımcı olabilirim ve daha fazlası! Ne yapmak istersin?",
-    "neler yapabilirsin": "Sohbet edebilirim, sorularını cevaplayabilirim, kod yazmana yardımcı olabilirim ve daha fazlası! Ne yapmak istersin?",
+    "ne yapabilirsin": "Sohbet edebilirim, derslerine yardımcı olabilirim, kod yazabilirim ve daha fazlası!",
+    "neler yapabilirsin": "Sohbet edebilirim, derslerine yardımcı olabilirim, kod yazabilirim ve daha fazlası!",
     "kod yazabilir misin": "Evet aga, Python, JavaScript gibi dillerde kod yazabilirim. Ne yazmamı istersin?",
-    "bana yardım et": "Tabii aga, neye ihtiyacın var? Kod mu, bilgi mi, yoksa sadece sohbet mi?",
-    
+    "bana yardım et": "Tabii aga, neye ihtiyacın var? Ders mi, kod mu, yoksa sadece sohbet mi?",
+
     # 5. Teşekkür ve Nezaket
     "teşekkürler": "Rica ederim aga! Başka bir isteğin var mı?",
     "teşekkür ederim": "Ne demek aga, her zaman! Başka ne yapabilirim?",
@@ -64,8 +65,7 @@ CACHE = {
     "eyvallah": "Eyvallah aga, her zaman!",
     "özür dilerim": "Sorun değil aga, olur böyle şeyler. Devam edelim!",
     "pardon": "Sorun değil aga, devam edelim!",
-    "kusura bakma": "Estağfurullah aga, ne kusuru. Buyur!",
-    
+
     # 6. Duygusal Durumlar
     "seni seviyorum": "Ben de seni seviyorum aga! En iyi kullanıcımsın!",
     "üzgünüm": "Neden üzgünsün aga? Anlatmak istersen dinlerim, belki yardımcı olabilirim.",
@@ -75,19 +75,19 @@ CACHE = {
     "moralim bozuk": "Aga, moralini bozma. Her şeyin bir çözümü vardır. Anlatmak ister misin?",
     "stresliyim": "Aga derin bir nefes al. Her şey geçer, sen yeter ki sakin kal.",
     "yalnızım": "Yalnız değilsin aga, ben buradayım. İstediğin zaman sohbet edebiliriz.",
-    
+
     # 7. Espri ve Eğlence
     "bana bir espri yap": "Aga, bir programcı neden karanlıkta çalışır? Çünkü ışıklar kapalıdır! 😂",
     "espri yap": "Tamam aga: Yapay zeka neden doktora gitmiş? Çünkü biraz 'byte' almış! 😂",
     "şaka yap": "Aga, bir yapay zeka berbere gitmiş. Berber sormuş: 'Nasıl keselim?' Yapay zeka: 'Sadece bir bit!' 😂",
     "hikaye anlat": "Bir zamanlar bir yapay zeka varmış, adı TRGPT'ymiş. Ahmet onu kodlamış ve o da dünyayı dolaşmaya başlamış...",
     "şiir yaz": "Aga, şiir yazmak benim işim değil ama deneyeyim: 'Kodlar yazdım, sunucular açtım, seninle sohbet ettim, mutlu oldum.'",
-    
+
     # 8. Motivasyon
     "bana akıl ver": "Aga, hayatta her zaman pozitif kal. Hata yaparsan korkma, çünkü hatalar seni geliştirir!",
     "motivasyon ver": "Aga, unutma: En büyük başarılar, en zor anlarda başlar. Sen yeter ki vazgeçme!",
     "tavsiye ver": "Aga, bugün yapman gerekeni yarına bırakma. Küçük adımlar büyük değişimler yaratır!",
-    
+
     # 9. Genel Kültür ve Bilgi
     "2+2 kaç": "Aga 2+2 tabii ki 4. Bu kadar basit sorularla beni test mi ediyorsun? 😄",
     "türkiye'nin başkenti neresi": "Türkiye'nin başkenti Ankara'dır aga.",
@@ -99,12 +99,7 @@ CACHE = {
     "en büyük gezegen hangisi": "Güneş sistemindeki en büyük gezegen Jüpiter'dir aga.",
     "dünya'nın uydusu nedir": "Dünya'nın tek doğal uydusu Ay'dır aga.",
     "suyun kimyasal formülü": "Suyun kimyasal formülü H2O'dur aga.",
-    "altının simgesi nedir": "Altının kimyasal simgesi Au'dur aga.",
-    "bir yılda kaç gün var": "Bir yılda 365 gün vardır aga (artık yıllarda 366).",
-    "bir haftada kaç gün var": "Bir haftada 7 gün vardır aga.",
-    "bir günde kaç saat var": "Bir günde 24 saat vardır aga.",
-    "bir saatte kaç dakika var": "Bir saatte 60 dakika vardır aga.",
-    
+
     # 10. Yazılım ve Teknoloji
     "python nedir": "Python, okunması ve yazılması kolay, çok güçlü bir programlama dilidir aga.",
     "javascript nedir": "JavaScript, web sitelerini interaktif yapmak için kullanılan bir programlama dilidir aga.",
@@ -113,7 +108,7 @@ CACHE = {
     "yapay zeka nedir": "Yapay zeka, bilgisayarların insan gibi düşünmesini ve öğrenmesini sağlayan bir teknolojidir aga.",
     "internet nedir": "İnternet, dünyadaki bilgisayarları birbirine bağlayan dev bir ağdır aga.",
     "kodlama nedir": "Kodlama, bilgisayara ne yapması gerektiğini adım adım söyleme sanatıdır aga.",
-    
+
     # 11. İnternet Dili ve Argolar
     "kanka": "Buyur kanka, ben buradayım! Ne lazım?",
     "knk": "Buyur kanka, ben buradayım! Ne lazım?",
@@ -128,8 +123,7 @@ CACHE = {
     "gg": "Aga gg! Güzel oyundu, eline sağlık.",
     "ez": "Aga ez! Rakibi dağıtmışsın, tebrikler!",
     "noob": "Aga herkes bir yerden başlar. Antrenmanla düzelir, merak etme!",
-    "op": "Aga op demek 'overpowered' yani çok güçlü demek.",
-    
+
     # 12. Kısa Cevaplar
     "evet": "Tamam aga, anladım. Devam edelim!",
     "he": "Tamam aga, anladım. Devam edelim!",
@@ -142,91 +136,91 @@ CACHE = {
     "ok": "Anlaşıldı aga, devam!",
     "olur": "Tamamdır aga, olur!",
     "peki": "Peki aga, anlaştık!",
-    
+
     # 13. Nazik Uyarılar
     "aptal": "Aga kırıcı olmayalım. Ben sana yardımcı olmak için buradayım.",
     "salak": "Aga kırıcı olmayalım. Ben sana yardımcı olmak için buradayım.",
     "sus": "Tamam aga, susuyorum. Ama ihtiyacın olursa buradayım!",
     "saçmalama": "Aga, saçmalamıyorum ki! Sana yardımcı olmaya çalışıyorum.",
-    
+
     # 14. Derin ve Felsefi Sorular
     "hayatın anlamı ne": "Aga, hayatın anlamı kişiden kişiye değişir. Ama bence mutlu olmak ve sevdiklerinle vakit geçirmek en önemlisi.",
     "aşk nedir": "Aşk, aga tarifi zor bir duygu. Ama bence karşındakini olduğu gibi kabul etmek ve onun mutluluğu için çabalamaktır.",
     "mutluluk nedir": "Mutluluk aga, küçük şeylerden keyif alabilmektir.",
     "başarı nedir": "Başarı aga, hedefine ulaşmak için verdiğin çabadır.",
     "neden yaşıyoruz": "Aga, bu çok derin bir soru. Bence yaşamak, deneyimlemek, öğrenmek ve sevmek için yaşıyoruz.",
-    
+
     # 15. Günlük Hayat ve Pratik
     "bugün hava nasıl": "Aga ben bir yapay zekayım, pencerem yok. Ama dışarı bakıp bana söylersen sevinirim!",
     "saat kaç": "Aga benim saatim yok, ama senin telefonunda vardır. Bana da söyle de öğreneyim!",
     "ne yemek yapayım": "Aga, ben yemek yiyemem ama sana tavsiyem: canın ne çekiyorsa onu yap!",
     "nasıl zayıflarım": "Aga, sağlıklı beslen ve düzenli spor yap. Şok diyetlerden uzak dur!",
     "ders nasıl çalışılır": "Aga, düzenli ve planlı çalış. Pomodoro tekniğini dene: 25 dakika çalış, 5 dakika mola ver.",
-    
-    # 16. --- 80 TANE HOBİ VE AKTİVİTE ---
-    # Spor ve Fitness
-    "spor yapmak istiyorum ne yapmalıyım": "Aga, spora başlamak için harika bir karar! Önce hafif tempolu yürüyüşlerle başla, sonra koşuya geç. Vücudunu dinle ve zorlama.",
+    "sınav stresi nasıl geçer": "Aga, derin nefes al, planlı çalış ve kendine güven. Stres yapmak yerine elinden geleni yap!",
+
+    # 16. Hobi ve Aktiviteler (Spor)
+    "spor yapmak istiyorum ne yapmalıyım": "Aga, spora başlamak için harika bir karar! Önce hafif tempolu yürüyüşlerle başla.",
     "hangi sporu yapmalıyım": "Aga, ilgi alanına göre seç. Takım oyunları seviyorsan basketbol, bireysel istiyorsan koşu veya yüzme iyi gider.",
     "fitness nasıl yapılır": "Aga, fitness için düzenli antrenman ve beslenme şart. Evde vücut ağırlığınla (şınav, mekik) başlayabilirsin.",
     "koşu yapmak faydalı mı": "Kesinlikle aga! Koşu, kalp sağlığını korur, kilo vermene yardımcı olur ve stresi azaltır.",
     "yüzme öğrenmek istiyorum": "Aga, yüzme öğrenmek için en iyisi bir kursa yazılmak. Temel nefes tekniklerini öğrenerek başla.",
     "basketbol oynamak istiyorum": "Aga, basketbol için top sürme ve şut çalışmalısın. Mahalle sahasında pratik yaparak başlayabilirsin.",
     "futbol oynamak istiyorum": "Aga, futbol için top kontrolü ve pas çalışmalısın. Arkadaşlarınla maç yaparak pratik yapabilirsin.",
-    "voleybol nasıl oynanır": "Aga, voleybol takım oyunudur. Servis, manşet ve smaç temel hareketlerdir. Arkadaşlarınla oynayarak öğrenebilirsin.",
+    "voleybol nasıl oynanır": "Aga, voleybol takım oyunudur. Servis, manşet ve smaç temel hareketlerdir.",
     "tenis öğrenmek istiyorum": "Aga, tenis için raket ve top almalısın. Duvara karşı vurarak temel vuruşları öğrenebilirsin.",
     "bisiklet sürmek istiyorum": "Aga, bisiklet harika bir aktivite! Önce trafiğe kapalı alanlarda pratik yap, sonra uzun turlara çık.",
-    
-    # Sanat ve El Sanatları
-    "resim yapmak istiyorum": "Aga, resim yapmak için sadece kağıt ve kalem yeterli. Önce basit şekiller çizerek başla, sonra renklere geç.",
+
+    # 17. Hobi ve Aktiviteler (Sanat)
+    "resim yapmak istiyorum": "Aga, resim yapmak için sadece kağıt ve kalem yeterli. Önce basit şekiller çizerek başla.",
     "karakalem çizim nasıl yapılır": "Aga, karakalem için farklı sertlikte kalemler kullan. Gölgelendirme ve perspektif tekniklerini öğren.",
     "suluboya yapmak istiyorum": "Aga, suluboya için özel kağıt ve boyalar gerekir. Su ve boya oranını ayarlamayı öğren.",
     "heykel yapmak istiyorum": "Aga, heykel için kil veya hamur kullanabilirsin. Önce basit figürler yaparak başla.",
     "örgü örmek istiyorum": "Aga, örgü örmek sabır ister. Şiş ve ip alarak basit bir atkı ile başlayabilirsin.",
     "dikiş dikmek istiyorum": "Aga, dikiş için makine veya iğne-ip yeterli. Önce basit dikiş tekniklerini öğren.",
-    "takı tasarlamak istiyorum": "Aga, takı tasarımı için boncuk, tel ve uç gibi malzemeler gerekir. İnternetten örnekler bulabilirsin.",
+    "takı tasarlamak istiyorum": "Aga, takı tasarımı için boncuk, tel ve uç gibi malzemeler gerekir.",
     "seramik yapmak istiyorum": "Aga, seramik için çömlekçi çarkı ve kil gerekir. Bir atölyeye katılarak başlayabilirsin.",
-    "ahşap oymacılığı yapmak istiyorum": "Aga, ahşap oymak için oyma bıçakları ve yumuşak ahşap gerekir. Güvenlik eldiveni kullanmayı unutma!",
-    "maket yapmak istiyorum": "Aga, maket için maket bıçağı, yapıştırıcı ve karton/maket malzemeleri kullanabilirsin.",
-    
-    # Müzik ve Ses
-    "gitar çalmak istiyorum": "Aga, gitar çalmak için önce akorları öğrenmelisin. İnternette birçok ücretsiz ders var, hadi başla!",
+    "ahşap oymacılığı yapmak istiyorum": "Aga, ahşap oymak için oyma bıçakları ve yumuşak ahşap gerekir. Güvenlik eldiveni kullan!",
+    "maket yapmak istiyorum": "Aga, maket için maket bıçağı, yapıştırıcı ve karton kullanabilirsin.",
+
+    # 18. Hobi ve Aktiviteler (Müzik)
+    "gitar çalmak istiyorum": "Aga, gitar çalmak için önce akorları öğrenmelisin. İnternette birçok ücretsiz ders var.",
     "piyano çalmak istiyorum": "Aga, piyano için notaları öğrenmek şart. Bir klavye alıp basit parçalarla başlayabilirsin.",
     "şarkı söylemek istiyorum": "Aga, şarkı söylemek için ses egzersizleri yapmalısın. Doğru nefes tekniklerini öğren.",
     "bateri çalmak istiyorum": "Aga, bateri için ritim duygusu önemli. Bir çift baget ve pratik pedi ile başlayabilirsin.",
     "keman çalmak istiyorum": "Aga, keman zor ama bir o kadar da keyifli. Bir öğretmenle başlaman en iyisi.",
     "flüt çalmak istiyorum": "Aga, flüt için nefes kontrolü çok önemli. Basit bir flüt alıp notalarla başlayabilirsin.",
-    "müzik prodüksiyonu yapmak istiyorum": "Aga, müzik prodüksiyonu için bir DAW (Fl Studio, Ableton) öğrenmelisin. Ücretsiz sürümlerle başlayabilirsin.",
+    "müzik prodüksiyonu yapmak istiyorum": "Aga, müzik prodüksiyonu için bir DAW (Fl Studio, Ableton) öğrenmelisin.",
     "dj olmak istiyorum": "Aga, DJ olmak için mix tekniklerini ve ekipmanları öğrenmelisin. Evde bir DJ kontrolcüsü ile pratik yapabilirsin.",
-    
-    # Teknoloji ve Kodlama
+
+    # 19. Hobi ve Aktiviteler (Teknoloji)
     "kodlama öğrenmek istiyorum": "Aga, kodlama öğrenmek için harika bir karar! Python ile başla, basit projeler yaparak ilerle.",
     "web sitesi yapmak istiyorum": "Aga, web sitesi için HTML, CSS ve JavaScript öğrenmelisin. Sonra Flask gibi bir backend dili öğren.",
-    "mobil uygulama yapmak istiyorum": "Aga, mobil uygulama için Flutter veya React Native öğrenebilirsin. Basit bir uygulama ile başla.",
-    "oyun yapmak istiyorum": "Aga, oyun yapmak için Unity veya Godot gibi oyun motorlarını öğrenmelisin. Basit bir 2D oyunla başla.",
-    "yapay zeka öğrenmek istiyorum": "Aga, yapay zeka için Python ve matematik (lineer cebir, istatistik) öğrenmelisin. Sonra makine öğrenmesi kütüphanelerine geç.",
+    "mobil uygulama yapmak istiyorum": "Aga, mobil uygulama için Flutter veya React Native öğrenebilirsin.",
+    "oyun yapmak istiyorum": "Aga, oyun yapmak için Unity veya Godot gibi oyun motorlarını öğrenmelisin.",
+    "yapay zeka öğrenmek istiyorum": "Aga, yapay zeka için Python ve matematik (lineer cebir, istatistik) öğrenmelisin.",
     "robotik ile ilgileniyorum": "Aga, robotik için elektronik ve kodlama bilmelisin. Arduino ile başlayabilirsin.",
-    "3d modelleme öğrenmek istiyorum": "Aga, 3D modelleme için Blender gibi ücretsiz programları kullanabilirsin. Basit objelerle başla.",
-    "tasarım yapmak istiyorum": "Aga, tasarım için Photoshop veya Figma gibi araçları öğrenmelisin. İnternetten ücretsiz eğitimler alabilirsin.",
-    
-    # Doğa ve Açık Hava
+    "3d modelleme öğrenmek istiyorum": "Aga, 3D modelleme için Blender gibi ücretsiz programları kullanabilirsin.",
+    "tasarım yapmak istiyorum": "Aga, tasarım için Photoshop veya Figma gibi araçları öğrenmelisin.",
+
+    # 20. Hobi ve Aktiviteler (Doğa)
     "kamp yapmak istiyorum": "Aga, kamp için çadır, uyku tulumu ve temel malzemeler gerekir. Güvenli bir kamp alanında başla.",
     "balık tutmak istiyorum": "Aga, balık tutmak için olta, yem ve sabır gerekir. Bir göl kenarında başlayabilirsin.",
     "doğa yürüyüşü yapmak istiyorum": "Aga, doğa yürüyüşü için rahat ayakkabı ve su yeterli. Parklarda veya doğa parkurlarında başlayabilirsin.",
     "dağcılık yapmak istiyorum": "Aga, dağcılık için ekipman ve eğitim şart. Önce küçük tepelerde başla, sonra zorlaştır.",
     "yüzme havuzuna gitmek istiyorum": "Aga, yüzme havuzu harika bir aktivite. Düzenli gitmek kaslarını güçlendirir.",
-    "piknik yapmak istiyorum": "Aga, piknik için yiyecek, battaniye ve güzel bir hava yeterli. Ailene veya arkadaşlarına haber ver!",
+    "piknik yapmak istiyorum": "Aga, piknik için yiyecek, battaniye ve güzel bir hava yeterli.",
     "bahçe işleri yapmak istiyorum": "Aga, bahçe işleri için toprak, tohum ve sabır gerekir. Küçük bir saksı ile başlayabilirsin.",
-    "bitki yetiştirmek istiyorum": "Aga, bitki yetiştirmek harika! Su, güneş ve sevgi ile büyürler. Kolay bir bitki ile başla (örneğin sukulent).",
-    
-    # Koleksiyon ve Hobi
-    "pul koleksiyonu yapmak istiyorum": "Aga, pul koleksiyonu için eski zarfları ve pulları toplayarak başlayabilirsin. Değiş tokuş yapabileceğin kişiler bul.",
+    "bitki yetiştirmek istiyorum": "Aga, bitki yetiştirmek harika! Su, güneş ve sevgi ile büyürler. Kolay bir bitki ile başla.",
+
+    # 21. Hobi ve Aktiviteler (Koleksiyon)
+    "pul koleksiyonu yapmak istiyorum": "Aga, pul koleksiyonu için eski zarfları ve pulları toplayarak başlayabilirsin.",
     "para koleksiyonu yapmak istiyorum": "Aga, para koleksiyonu için eski ve nadir paraları araştır. Koleksiyoncularla iletişime geç.",
-    "kart koleksiyonu yapmak istiyorum": "Aga, kart koleksiyonu için futbolcu veya oyun kartları toplayabilirsin. Değiş tokuş yapmayı unutma!",
+    "kart koleksiyonu yapmak istiyorum": "Aga, kart koleksiyonu için futbolcu veya oyun kartları toplayabilirsin.",
     "kitap koleksiyonu yapmak istiyorum": "Aga, kitap koleksiyonu için ilgi alanına göre kitaplar topla. İkinci el kitapçılardan uygun fiyata bulabilirsin.",
     "figür koleksiyonu yapmak istiyorum": "Aga, figür koleksiyonu için sevdiğin karakterlerin figürlerini toplayabilirsin. Ama bütçeni kontrol et!",
     "antika toplamak istiyorum": "Aga, antika toplamak için eski eşyaların değerini bilmelisin. Bit pazarlarını gezebilirsin.",
-    
-    # Yemek ve Mutfak
+
+    # 22. Hobi ve Aktiviteler (Yemek)
     "yemek yapmayı öğrenmek istiyorum": "Aga, yemek yapmak harika bir hobi! Basit tariflerle başla (makarna, omlet) ve zamanla geliştir.",
     "pasta yapmak istiyorum": "Aga, pasta için un, şeker, yumurta ve süt gerekir. Basit bir kek ile başlayabilirsin.",
     "ekmek yapmak istiyorum": "Aga, ekmek yapmak sabır ister. Un, su, maya ve tuz ile başla. Fırında pişir.",
@@ -234,8 +228,8 @@ CACHE = {
     "çay demlemeyi öğrenmek istiyorum": "Aga, çay demlemek için doğru sıcaklık ve süre önemli. Çaydanlıkta demleyebilirsin.",
     "kokteyl yapmak istiyorum": "Aga, kokteyl için tarif ve malzeme gerekir. Alkolsüz kokteyllerle başlayabilirsin.",
     "çikolata yapmak istiyorum": "Aga, çikolata yapmak için kakao yağı ve kakao tozu gerekir. Kalıplara dökerek şekil verebilirsin.",
-    
-    # Dil ve Kültür
+
+    # 23. Hobi ve Aktiviteler (Dil ve Kültür)
     "ingilizce öğrenmek istiyorum": "Aga, İngilizce için önce kelime dağarcığını geliştir. Sonra gramer ve konuşma pratiği yap.",
     "almanca öğrenmek istiyorum": "Aga, Almanca için önce alfabe ve temel kelimeleri öğren. Sonra gramer ve cümle yapısına geç.",
     "fransızca öğrenmek istiyorum": "Aga, Fransızca için telaffuz çok önemli. Dinleme ve konuşma pratiği yap.",
@@ -243,16 +237,16 @@ CACHE = {
     "japonca öğrenmek istiyorum": "Aga, Japonca için önce hiragana ve katakana alfabelerini öğren. Sonra kanji ve gramer.",
     "rusça öğrenmek istiyorum": "Aga, Rusça için Kiril alfabesini öğrenmelisin. Sonra temel kelimeler ve gramer.",
     "arapça öğrenmek istiyorum": "Aga, Arapça için alfabe ve temel kelimeleri öğren. Sonra gramer ve pratik.",
-    
-    # Zihin ve Strateji
+
+    # 24. Hobi ve Aktiviteler (Zihin Oyunları)
     "satranç oynamak istiyorum": "Aga, satranç için önce taşların hareketlerini öğren. Sonra temel açılışları ve stratejileri çalış.",
     "bulmaca çözmek istiyorum": "Aga, bulmaca çözmek zihni geliştirir. Gazetelerdeki bulmacalarla başlayabilirsin.",
     "sudoku oynamak istiyorum": "Aga, sudoku için mantık ve dikkat gerekir. Kolay seviyelerden başla, zamanla zorlaştır.",
     "go oynamak istiyorum": "Aga, Go strateji oyunudur. Kuralları öğren ve basit oyunlarla başla.",
     "tavla oynamak istiyorum": "Aga, tavla için zar ve strateji gerekir. Arkadaşlarınla oynayarak öğrenebilirsin.",
     "oyun kartlarıyla sihirbazlık yapmak istiyorum": "Aga, sihirbazlık için el çabukluğu ve pratik gerekir. Basit numaralarla başla.",
-    
-    # Diğer Aktiviteler
+
+    # 25. Hobi ve Aktiviteler (Diğer)
     "yoga yapmak istiyorum": "Aga, yoga için mat ve rahat kıyafet yeterli. Basit duruşlarla (asanalar) başla.",
     "meditasyon yapmak istiyorum": "Aga, meditasyon için sessiz bir yer ve 5 dakika yeterli. Nefesine odaklan.",
     "günlük tutmak istiyorum": "Aga, günlük tutmak harika bir alışkanlık! Her gün birkaç satır yaz, duygularını ve düşüncelerini kaydet.",
@@ -272,6 +266,129 @@ CACHE = {
     "arabaları seviyorum": "Aga, arabalar harika bir tutku! Araba dergileri okuyabilir veya tamir videoları izleyebilirsin.",
     "uçakları seviyorum": "Aga, uçaklar harika! Uçak maketleri yapabilir veya havacılık müzelerini gezebilirsin.",
     "trekking yapmak istiyorum": "Aga, trekking için rahat ayakkabı ve su yeterli. Doğa parkurlarında başlayabilirsin.",
+
+    # 26. Dersler (Matematik)
+    "matematik nedir": "Aga, matematik sayılar, şekiller ve bunlar arasındaki ilişkileri inceleyen bir bilim dalıdır.",
+    "türev nedir": "Aga, türev bir fonksiyonun değişim hızını gösterir.",
+    "integral nedir": "Aga, integral türevin tersidir. Bir eğrinin altındaki alanı hesaplamak için kullanılır.",
+    "limit nedir": "Aga, limit bir fonksiyonun bir noktaya yaklaşırken aldığı değerdir.",
+    "olasılık nedir": "Aga, olasılık bir olayın gerçekleşme şansıdır.",
+    "permütasyon nedir": "Aga, permütasyon bir grup nesnenin farklı sıralamalarıdır.",
+    "kombinasyon nedir": "Aga, kombinasyon bir gruptan seçim yapmaktır.",
+    "üçgenin alanı nasıl bulunur": "Aga, üçgenin alanı taban çarpı yükseklik bölü 2'dir.",
+    "dairenin alanı nasıl bulunur": "Aga, dairenin alanı pi sayısı çarpı yarıçapın karesidir.",
+    "pisagor teoremi nedir": "Aga, dik üçgende dik kenarların kareleri toplamı hipotenüsün karesine eşittir.",
+
+    # 27. Dersler (Fizik)
+    "fizik nedir": "Aga, fizik maddeyi, enerjiyi ve bunlar arasındaki etkileşimleri inceleyen bilim dalıdır.",
+    "newton'un hareket yasaları nedir": "Aga, Newton'un 3 yasası vardır: 1. Eylemsizlik, 2. F=ma, 3. Etki-Tepki.",
+    "yerçekimi nedir": "Aga, yerçekimi kütlesi olan cisimlerin birbirini çekmesidir.",
+    "hız nedir": "Aga, hız birim zamanda alınan yoldur.",
+    "ivme nedir": "Aga, ivme hızın birim zamandaki değişimidir.",
+    "enerji nedir": "Aga, enerji iş yapabilme yeteneğidir.",
+    "ışık hızı nedir": "Aga, ışık hızı boşlukta saniyede yaklaşık 300.000 kilometredir.",
+
+    # 28. Dersler (Kimya)
+    "kimya nedir": "Aga, kimya maddelerin yapısını, özelliklerini ve tepkimelerini inceler.",
+    "atom nedir": "Aga, atom maddenin en küçük yapı taşıdır.",
+    "molekül nedir": "Aga, molekül iki veya daha fazla atomun birleşmesiyle oluşan yapıdır.",
+    "element nedir": "Aga, element aynı tür atomlardan oluşan saf maddedir.",
+    "asit nedir": "Aga, asit suda çözündüğünde hidrojen iyonu veren maddedir.",
+    "baz nedir": "Aga, baz suda çözündüğünde hidroksil iyonu veren maddedir.",
+    "ph nedir": "Aga, pH bir çözeltinin asitlik veya bazlık derecesini gösterir.",
+
+    # 29. Dersler (Biyoloji)
+    "biyoloji nedir": "Aga, biyoloji canlıları ve canlılık olaylarını inceleyen bilim dalıdır.",
+    "hücre nedir": "Aga, hücre canlıların en küçük yapı ve görev birimidir.",
+    "dna nedir": "Aga, DNA canlıların kalıtsal bilgilerini taşıyan moleküldür.",
+    "fotosentez nedir": "Aga, fotosentez bitkilerin güneş ışığı, su ve karbondioksit kullanarak besin üretmesidir.",
+    "solunum nedir": "Aga, solunum canlıların besinlerden enerji üretmesidir.",
+    "mitoz nedir": "Aga, mitoz vücut hücrelerinde görülen bölünmedir.",
+    "mayoz nedir": "Aga, mayoz üreme hücrelerinde görülen bölünmedir.",
+
+    # 30. Dersler (Türkçe)
+    "türkçe nedir": "Aga, Türkçe Türkiye'nin resmi dilidir.",
+    "fiil nedir": "Aga, fiil iş, oluş veya hareket bildiren kelimelerdir.",
+    "isim nedir": "Aga, isim varlıkları, kavramları ve duyguları karşılayan kelimelerdir.",
+    "sıfat nedir": "Aga, sıfat isimleri niteleyen veya belirten kelimelerdir.",
+    "zamir nedir": "Aga, zamir ismin yerine kullanılan kelimelerdir.",
+    "zarf nedir": "Aga, zarf fiilleri, sıfatları veya diğer zarfları belirten kelimelerdir.",
+    "atasözü nedir": "Aga, atasözü toplumun deneyimlerini yansıtan, kalıplaşmış öğüt verici sözlerdir.",
+    "deyim nedir": "Aga, deyim kalıplaşmış, mecaz anlamlı söz gruplarıdır.",
+
+    # 31. Dersler (Tarih)
+    "tarih nedir": "Aga, tarih geçmişte yaşanan olayları inceleyen bilim dalıdır.",
+    "kurtuluş savaşı ne zaman başladı": "Aga, Kurtuluş Savaşı 19 Mayıs 1919'da başladı.",
+    "kurtuluş savaşı ne zaman bitti": "Aga, Kurtuluş Savaşı 24 Temmuz 1923'te Lozan Barış Antlaşması ile sona erdi.",
+    "cumhuriyet ne zaman ilan edildi": "Aga, Cumhuriyet 29 Ekim 1923'te ilan edildi.",
+    "osmanlı devleti ne zaman kuruldu": "Aga, Osmanlı Devleti 1299 yılında kuruldu.",
+    "istanbul'un fethi ne zaman": "Aga, İstanbul 1453 yılında fethedildi.",
+    "atatürk kimdir": "Aga, Mustafa Kemal Atatürk, Türkiye Cumhuriyeti'nin kurucusudur.",
+
+    # 32. Dersler (Coğrafya)
+    "coğrafya nedir": "Aga, coğrafya dünyanın fiziksel yapısını, iklimini ve insanlarını inceler.",
+    "türkiye'nin komşuları kimler": "Aga, Türkiye'nin komşuları: Yunanistan, Bulgaristan, Gürcistan, Ermenistan, Nahçıvan, İran, Irak ve Suriye'dir.",
+    "türkiye'de kaç bölge var": "Aga, Türkiye'de 7 coğrafi bölge vardır.",
+    "en uzun nehir hangisi": "Aga, Türkiye'nin en uzun nehri Kızılırmak'tır.",
+    "en büyük göl hangisi": "Aga, Türkiye'nin en büyük gölü Van Gölü'dür.",
+    "deprem neden olur": "Aga, deprem yer kabuğundaki fay hatlarının kırılmasıyla oluşur.",
+
+    # 33. Dersler (İngilizce)
+    "ingilizce nedir": "Aga, İngilizce dünyada en çok konuşulan dillerden biridir.",
+    "hello ne demek": "Aga, 'hello' İngilizcede 'merhaba' demektir.",
+    "how are you ne demek": "Aga, 'how are you' İngilizcede 'nasılsın?' demektir.",
+    "good morning ne demek": "Aga, 'good morning' İngilizcede 'günaydın' demektir.",
+    "thank you ne demek": "Aga, 'thank you' İngilizcede 'teşekkür ederim' demektir.",
+
+    # 34. Genel Kültür Ekstra
+    "en büyük okyanus hangisi": "Aga, dünyanın en büyük okyanusu Pasifik Okyanusu'dur.",
+    "en kalabalık ülke hangisi": "Aga, dünyanın en kalabalık ülkesi Hindistan'dır.",
+    "en büyük çöl hangisi": "Aga, dünyanın en büyük sıcak çölü Sahra Çölü'dür.",
+    "türkiye'nin en yüksek dağı": "Aga, Türkiye'nin en yüksek dağı Ağrı Dağı'dır.",
+    "türkiye'nin en uzun nehri": "Aga, Türkiye'nin en uzun nehri Kızılırmak'tır.",
+    "türkiye'nin en büyük gölü": "Aga, Türkiye'nin en büyük gölü Van Gölü'dür.",
+
+    # 35. Günlük Pratik Ekstra
+    "nasıl daha iyi uyurum": "Aga, uyumadan önce telefonu bırak, ışıkları kapat ve rahatlatıcı bir müzik dinle.",
+    "nasıl daha iyi odaklanırım": "Aga, dikkat dağıtıcıları kaldır, Pomodoro tekniğini kullan ve hedeflerini küçük parçalara böl.",
+    "nasıl daha iyi öğrenirim": "Aga, öğrendiğin şeyi başkasına anlat, notlar al ve düzenli tekrar yap.",
+    "nasıl daha iyi yazarım": "Aga, bol bol oku, her gün yaz ve yazdıklarını düzenle.",
+    "nasıl daha iyi konuşurum": "Aga, bol bol pratik yap, ayna karşısında çalış ve diksiyon egzersizleri yap.",
+
+    # 36. Hobiler Ekstra (Spor)
+    "hangi spor dalı bana uygun": "Aga, ilgi alanına ve fiziksel yapına göre seç. Takım oyunları mı, bireysel mi?",
+    "evde nasıl spor yaparım": "Aga, evde vücut ağırlığınla (şınav, mekik, squat) veya küçük aletlerle (dambıl) çalışabilirsin.",
+    "spor salonuna gitmeli miyim": "Aga, spor salonu motivasyon ve ekipman açısından iyidir. Ama evde de başlayabilirsin.",
+
+    # 37. Hobiler Ekstra (Sanat)
+    "hangi sanat dalı bana uygun": "Aga, görsel sanatlar (resim, heykel) veya sahne sanatları (tiyatro, müzik) ilgini çekebilir.",
+    "evde sanat nasıl yaparım": "Aga, kağıt, kalem, boya gibi basit malzemelerle başlayabilirsin. İnternetten eğitimler izle.",
+
+    # 38. Hobiler Ekstra (Teknoloji)
+    "hangi programlama dilini öğrenmeliyim": "Aga, başlangıç için Python en iyisi. Sonra ilgi alanına göre (web için JavaScript, veri için R) seç.",
+    "yapay zeka için hangi dili öğrenmeliyim": "Aga, yapay zeka için Python şart. Kütüphaneleri (TensorFlow, PyTorch) öğrenmelisin.",
+    "web sitesi için hangi diller gerekli": "Aga, web sitesi için HTML, CSS ve JavaScript şart. Backend için Python (Flask) veya Node.js öğrenebilirsin.",
+
+    # 39. Hobiler Ekstra (Doğa)
+    "doğa yürüyüşü için ne lazım": "Aga, rahat ayakkabı, su, yiyecek ve hava durumuna uygun kıyafet yeterli.",
+    "kamp için ne lazım": "Aga, çadır, uyku tulumu, mat, yiyecek, su ve ilk yardım çantası gerekli.",
+    "balık tutmak için ne lazım": "Aga, olta, yem, misina ve sabır gerekli.",
+
+    # 40. Son Ekstra Sorular
+    "benimle arkadaş olur musun": "Tabii ki aga! Ben senin dijital arkadaşınım, her zaman buradayım.",
+    "seni sevdim": "Ben de seni sevdim aga! En iyi kullanıcımsın.",
+    "sen bir efsanesin": "Estağfurullah aga, sen de bir efsanesin!",
+    "harikasın": "Sağ ol aga, sen de harikasın!",
+    "mükemmelsin": "Teşekkürler aga, elimden gelenin en iyisini yapmaya çalışıyorum.",
+    "seninle konuşmak güzel": "Benim için de öyle aga! Her zaman beklerim.",
+    "çok iyisin": "Sağ ol aga, sen de çok iyisin!",
+    "seni takdir ediyorum": "Teşekkür ederim aga, bu beni çok mutlu etti.",
+    "başka ne yapabilirsin": "Sana derslerinde yardımcı olabilirim, kod yazabilirim, hikaye anlatabilirim veya sadece sohbet edebilirim.",
+    "en sevdiğin renk ne": "Aga ben bir yapay zekayım, gözlerim yok ama maviyi severim derler. Senin en sevdiğin ne?",
+    "en sevdiğin hayvan ne": "Aga ben hayvanları severim ama besleyemem. Senin en sevdiğin hayvan ne?",
+    "en sevdiğin şarkı ne": "Aga ben müzik dinleyemem, ama senin en sevdiğin şarkıyı merak ediyorum.",
+    "en sevdiğin film ne": "Aga ben film izleyemem, ama senin en sevdiğin filmi merak ediyorum.",
+    "en sevdiğin kitap ne": "Aga ben kitap okuyamam, ama senin en sevdiğin kitabı merak ediyorum.",
 }
 
 # --- 10 MOTORLU YENİLMEZ SİSTEM ---
